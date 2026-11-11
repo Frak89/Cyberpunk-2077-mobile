@@ -230,7 +230,7 @@ func _process(dt: float) -> void:
     else:
         stride += dt * .9
     floor_mat.set_shader_parameter("scroll",travel)
-    var swing := sin(stride) * min(active*2.0,1.0)
+    var swing: float = sin(stride) * minf(active * 2.0, 1.0)
     l_leg.rotation.x = swing*.60
     r_leg.rotation.x = -swing*.60
     l_arm.rotation.x = -swing*.48
