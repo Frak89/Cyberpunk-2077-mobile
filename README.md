@@ -1,13 +1,18 @@
-# NEON RONIN
+# NEON RONIN V2 — Real 3D cyber samurai for Android
 
-Playable cyber-samurai 3D treadmill prototype built in **Godot 4.7.2** for Android 17 / API 36. Original procedural 3D armored character and katana, animated walking/running, free-direction scrolling neon checkerboard and mobile touch controls.
+Godot 4.7.2 Android API 36; original cyber-futuristic samurai prototype.
+**Unlike V1, this uses an actual textured triangulated 3D GLB mesh**, not box primitives or a flat portrait Sprite3D.
+Anatomical body geometry, real 3D face geometry with UV-projected photo texture, individual armor plates,
+curved head, ears, hair, articulated hips/knees/shoulders/elbows, katana and metallic/emissive PBR materials.
 
-**Controls:** drag the left half of the screen to walk, toggle **SPRINT** on the right; on desktop use arrows/WASD and Shift. Camera and character stay centered.
+**Build:** The GitHub workflow installs Python, creates assets/ronin_v2.glb with `tools/build_avatar.py`, imports it into Godot, and exports debug APK for ARM64 / Android API 36.
+The generated GLB is a build artifact, not checked in, to preserve a reproducible Blender-independent source mesh.
 
-**Build:** Open project.godot in Godot 4.7.2; install Android export templates and Android SDK platform 36. Export the Android preset. A GitHub Actions build is included; download the debug APK from the workflow Artifacts after successful completion.
+**Control:** drag the left area for directional treadmill movement, press Sprint for faster motion.
+Camera starts on the face side.
 
-**Face:** For privacy, the public repository doesn't upload your portrait. The downloadable project ZIP provided in chat has your photo cropped as assets/face.png; copy that path into this repo to use it. The model otherwise has a neon visor.
+**PHOTO PRIVACY NOTICE:** This public repository contains `assets/face_albedo.jpg`, a photograph-derived portrait texture provided by the owner to represent their appearance. The texture is built into the generated 3D model and Android APK. Remove or replace the texture before redistributing the project without permission.
 
-**Higgsfield:** Optional external design-time asset generation; not an in-game library. The free Higgsfield account rejected portrait generation due to its plan limits. No credits spent on the failed generation.
+**Higgsfield:** It was considered as an optional production-time asset workflow, but the connected free-plan image model rejected the job; this implementation uses open-source procedural geometry and no paid credits.
 
-This is a small original game prototype, **not Cyberpunk 2077**, and does not include commercial game assets.
+This is a preliminary *stylized* high-geometry 3D character and a playable demo, not AAA photorealism or a professional motion-captured full-skeletal game.

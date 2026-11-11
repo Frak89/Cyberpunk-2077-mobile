@@ -54,10 +54,10 @@ func _ready() -> void:
     environment.environment = e
     add_child(environment)
     var cam := Camera3D.new()
-    cam.position = Vector3(5.0,5.7,8.8)
+    cam.position = Vector3(3.1,4.2,-7.7)
     cam.fov = 42.0
     add_child(cam)
-    cam.look_at(Vector3(0,1.3,0))
+    cam.look_at(Vector3(0,1.52,0))
     cam.current = true
     var sun := DirectionalLight3D.new()
     sun.rotation_degrees = Vector3(-55,-25,0)
@@ -106,58 +106,36 @@ void fragment() {
     create_hero()
     create_hud()
 
+var rig_root: Node3D
+var l_knee: Node3D
+var r_knee: Node3D
+var l_elbow: Node3D
+var r_elbow: Node3D
+var head_joint: Node3D
+
 func create_hero() -> void:
     hero = Node3D.new()
-    hero.name = "CustomCyberSamurai"
+    hero.name = "CyberRonin"
     add_child(hero)
-    block(hero,"Torso",Vector3(0,1.73,0),Vector3(.85,1,.45),ARMOR)
-    block(hero,"Breastplate",Vector3(0,1.83,-.25),Vector3(.80,.73,.12),STEEL)
-    block(hero,"Reactor",Vector3(0,1.83,-.33),Vector3(.09,.54,.04),CYAN,true)
-    block(hero,"Belt",Vector3(0,1.2,0),Vector3(.84,.15,.54),BLACK)
-    block(hero,"Neck",Vector3(0,2.39,0),Vector3(.25,.22,.21),Color("#b77e68"))
-    var head := MeshInstance3D.new()
-    var headmesh := CapsuleMesh.new()
-    headmesh.radius = .245
-    headmesh.height = .48
-    head.mesh = headmesh
-    head.position = Vector3(0,2.7,-.02)
-    head.material_override = material(Color("#ad7864"))
-    hero.add_child(head)
-    block(hero,"Hair",Vector3(0,2.95,-.02),Vector3(.45,.10,.49),BLACK)
-    block(hero,"Visor",Vector3(0,2.70,-.265),Vector3(.45,.10,.05),BLACK)
-    block(hero,"Eyes",Vector3(0,2.69,-.294),Vector3(.40,.025,.025),CYAN,true)
-    # Optional user portrait: add assets/face.png locally.
-    if ResourceLoader.exists("res://assets/face.png"):
-        var face := Sprite3D.new()
-        face.texture = load("res://assets/face.png")
-        face.pixel_size = .00165
-        face.position = Vector3(0,2.68,-.27)
-        face.shaded = false
-        hero.add_child(face)
-    l_arm = Node3D.new(); l_arm.position = Vector3(-.58,2.09,0); hero.add_child(l_arm)
-    r_arm = Node3D.new(); r_arm.position = Vector3(.58,2.09,0); hero.add_child(r_arm)
-    for arm in [l_arm,r_arm]:
-        block(arm,"Upper",Vector3(0,-.34,0),Vector3(.26,.68,.29),ARMOR)
-        block(arm,"Forearm",Vector3(0,-.76,-.06),Vector3(.29,.43,.31),STEEL)
-        block(arm,"Neon",Vector3(0,-.76,-.23),Vector3(.06,.26,.03),CYAN,true)
-    l_leg = Node3D.new(); l_leg.position = Vector3(-.23,1.15,0); hero.add_child(l_leg)
-    r_leg = Node3D.new(); r_leg.position = Vector3(.23,1.15,0); hero.add_child(r_leg)
-    for leg in [l_leg,r_leg]:
-        block(leg,"Thigh",Vector3(0,-.28,0),Vector3(.34,.65,.42),ARMOR)
-        block(leg,"Shin",Vector3(0,-.75,-.02),Vector3(.30,.47,.37),STEEL)
-        block(leg,"Boot",Vector3(0,-1.03,-.12),Vector3(.34,.20,.52),BLACK)
-        block(leg,"LED",Vector3(0,-.75,-.22),Vector3(.10,.25,.03),PINK,true)
-    for s in [-1.0,1.0]:
-        block(hero,"Shoulder",Vector3(s*.51,2.10,0),Vector3(.40,.23,.60),STEEL)
-        block(hero,"ShoulderLight",Vector3(s*.51,2.21,-.30),Vector3(.34,.025,.025),CYAN,true)
-    var katana := Node3D.new()
-    katana.position = Vector3(.56,1.27,0)
-    katana.rotation_degrees.z = 22
-    hero.add_child(katana)
-    block(katana,"Scabbard",Vector3(0,-.48,0),Vector3(.09,1.0,.09),BLACK)
-    block(katana,"NeonBlade",Vector3(0,-.48,-.053),Vector3(.018,.96,.03),PINK,true)
-    block(katana,"Guard",Vector3(0,.06,0),Vector3(.23,.045,.20),STEEL)
-    block(katana,"Grip",Vector3(0,.25,0),Vector3(.08,.31,.09),BLACK)
+    var packed: PackedScene = load("res://assets/ronin_v2.glb")
+    if packed == null:
+        push_error("The real 3D avatar could not be imported")
+        return
+    rig_root = packed.instantiate() as Node3D
+    hero.add_child(rig_root)
+    l_leg = rig_root.find_child("HipL", true, false) as Node3D
+    r_leg = rig_root.find_child("HipR", true, false) as Node3D
+    l_arm = rig_root.find_child("ShoulderL", true, false) as Node3D
+    r_arm = rig_root.find_child("ShoulderR", true, false) as Node3D
+    l_knee = rig_root.find_child("KneeL", true, false) as Node3D
+    r_knee = rig_root.find_child("KneeR", true, false) as Node3D
+    l_elbow = rig_root.find_child("ElbowL", true, false) as Node3D
+    r_elbow = rig_root.find_child("ElbowR", true, false) as Node3D
+    head_joint = rig_root.find_child("Neck_Head", true, false) as Node3D
+    for limb in [l_leg, r_leg, l_arm, r_arm, l_knee, r_knee, l_elbow, r_elbow]:
+        if limb == null:
+            push_error("Rig hierarchy missing a joint after glTF import")
+            break
 
 func create_hud() -> void:
     var layer := CanvasLayer.new()
@@ -231,9 +209,19 @@ func _process(dt: float) -> void:
         stride += dt * .9
     floor_mat.set_shader_parameter("scroll",travel)
     var swing: float = sin(stride) * minf(active * 2.0, 1.0)
-    l_leg.rotation.x = swing*.60
-    r_leg.rotation.x = -swing*.60
-    l_arm.rotation.x = -swing*.48
-    r_arm.rotation.x = swing*.48
+    if l_leg != null and r_leg != null:
+        l_leg.rotation.x = swing * .48
+        r_leg.rotation.x = -swing * .48
+    if l_arm != null and r_arm != null:
+        l_arm.rotation.x = -swing * .38
+        r_arm.rotation.x = swing * .38
+    if l_knee != null and r_knee != null:
+        l_knee.rotation.x = maxf(0.0,-swing) * .38
+        r_knee.rotation.x = maxf(0.0,swing) * .38
+    if l_elbow != null and r_elbow != null:
+        l_elbow.rotation.x = -.18 - maxf(0.0,swing) * .19
+        r_elbow.rotation.x = -.18 - maxf(0.0,-swing) * .19
+    if head_joint != null:
+        head_joint.rotation.z = sin(stride*.32) * .015
     hero.position.y = .08 + abs(sin(stride))*.045*active
     label_speed.text = "VELOCITY   %.1f M/S" % speed

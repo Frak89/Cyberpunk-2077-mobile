@@ -47,6 +47,14 @@ jobs:
           unzip -q /tmp/templates.tpz -d /tmp/godot-templates
           cp /tmp/godot-templates/templates/* "$HOME/.local/share/godot/export_templates/${VERSION}.stable/"
           godot --headless --version
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Generate original 3D GLB avatar
+        run: |
+          python -m pip install -r tools/requirements.txt
+          python tools/build_avatar.py
+          test -s assets/ronin_v2.glb
       - name: Create debug keystore
         run: |
           set -euo pipefail
