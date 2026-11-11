@@ -3,6 +3,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+
+permissions:
+  contents: read
+
 jobs:
   android:
     runs-on: ubuntu-latest
@@ -12,33 +16,59 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - uses: android-actions/setup-android@v3
-      - run: sdkmanager --install 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0'
-      - name: Install Godot 4.7.2 and templates
+      - name: Configure Android SDK 36
+        shell: bash
         run: |
-          set -e
-          mkdir -p ~/.local/share/godot/export_templates/4.7.2.stable build
-          curl -fL --retry 3 -o /tmp/godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-/usr/local/lib/android/sdk}}"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          SDK_MANAGER="$SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDK_MANAGER" ]; then
+            SDK_MANAGER="$(command -v sdkmanager)"
+          fi
+          echo "Using SDK manager: $SDK_MANAGER"
+          yes | "$SDK_MANAGER" --sdk_root="$SDK_ROOT" --licenses >/dev/null || true
+          "$SDK_MANAGER" --sdk_root="$SDK_ROOT" --install \
+            'platform-tools' 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Install Godot 4.7.2 and Android export templates
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=4.7.2
+          mkdir -p "$HOME/.local/share/godot/export_templates/${VERSION}.stable" build
+          curl --fail --location --retry 3 --output /tmp/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${VERSION}-stable/Godot_v${VERSION}-stable_linux.x86_64.zip"
           unzip -q /tmp/godot.zip -d /tmp
-          sudo mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot
-          sudo chmod +x /usr/local/bin/godot
-          curl -fL --retry 3 -o /tmp/templates.tpz https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
-          mkdir /tmp/tpls
-          unzip -q /tmp/templates.tpz -d /tmp/tpls
-          cp /tmp/tpls/templates/* ~/.local/share/godot/export_templates/4.7.2.stable/
+          sudo install -m 755 "/tmp/Godot_v${VERSION}-stable_linux.x86_64" /usr/local/bin/godot
+          curl --fail --location --retry 3 --output /tmp/templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${VERSION}-stable/Godot_v${VERSION}-stable_export_templates.tpz"
+          mkdir -p /tmp/godot-templates
+          unzip -q /tmp/templates.tpz -d /tmp/godot-templates
+          cp /tmp/godot-templates/templates/* "$HOME/.local/share/godot/export_templates/${VERSION}.stable/"
+          godot --headless --version
       - name: Create debug keystore
         run: |
-          mkdir -p ~/.android
-          keytool -genkeypair -keystore ~/.android/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname 'CN=Android Debug,O=Android,C=US'
-      - name: Export APK
+          set -euo pipefail
+          mkdir -p "$HOME/.android"
+          keytool -genkeypair -keystore "$HOME/.android/debug.keystore" \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 \
+            -storepass android -keypass android -dname 'CN=Android Debug,O=Android,C=US'
+      - name: Import project and export debug APK
         env:
           GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /home/runner/.android/debug.keystore
           GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
           GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        shell: bash
         run: |
+          set -euo pipefail
           godot --headless --path . --editor --quit
           godot --headless --path . --export-debug Android build/NeonRonin-debug.apk
+          test -s build/NeonRonin-debug.apk
+          ls -lh build/NeonRonin-debug.apk
       - uses: actions/upload-artifact@v4
+        if: success()
         with:
           name: NeonRonin-Android-API36
           path: build/NeonRonin-debug.apk
+          if-no-files-found: error
