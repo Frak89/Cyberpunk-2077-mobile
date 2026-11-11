@@ -55,6 +55,16 @@ jobs:
           python -m pip install -r tools/requirements.txt
           python tools/build_avatar.py
           test -s assets/ronin_v2.glb
+      - name: Smoke-test 3D scene and articulated rig
+        shell: bash
+        run: |
+          set -euo pipefail
+          godot --headless --path . --quit-after 12 2>&1 | tee /tmp/ronin-smoke.log
+          grep -q "RONIN_REAL3D_RIG_JOINTS_OK" /tmp/ronin-smoke.log
+          if grep -E 'SCRIPT ERROR|Parse Error|RONIN_REAL3D_RIG_JOINTS_MISSING|Failed to load script' /tmp/ronin-smoke.log; then
+            echo "Runtime smoke test failed"
+            exit 1
+          fi
       - name: Create debug keystore
         run: |
           set -euo pipefail

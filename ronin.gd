@@ -132,10 +132,15 @@ func create_hero() -> void:
     l_elbow = rig_root.find_child("ElbowL", true, false) as Node3D
     r_elbow = rig_root.find_child("ElbowR", true, false) as Node3D
     head_joint = rig_root.find_child("Neck_Head", true, false) as Node3D
-    for limb in [l_leg, r_leg, l_arm, r_arm, l_knee, r_knee, l_elbow, r_elbow]:
+    var found: bool = true
+    for limb in [l_leg, r_leg, l_arm, r_arm, l_knee, r_knee, l_elbow, r_elbow, head_joint]:
         if limb == null:
-            push_error("Rig hierarchy missing a joint after glTF import")
-            break
+            found = false
+    if found:
+        print("RONIN_REAL3D_RIG_JOINTS_OK")
+    else:
+        push_error("RONIN_REAL3D_RIG_JOINTS_MISSING")
+
 
 func create_hud() -> void:
     var layer := CanvasLayer.new()
