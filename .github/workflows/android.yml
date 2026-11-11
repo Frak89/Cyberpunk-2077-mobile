@@ -59,6 +59,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          godot --headless --path . --editor --quit
           godot --headless --path . --quit-after 12 2>&1 | tee /tmp/ronin-smoke.log
           grep -q "RONIN_REAL3D_RIG_JOINTS_OK" /tmp/ronin-smoke.log
           if grep -E 'SCRIPT ERROR|Parse Error|RONIN_REAL3D_RIG_JOINTS_MISSING|Failed to load script' /tmp/ronin-smoke.log; then
