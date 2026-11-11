@@ -1,0 +1,44 @@
+name: Export Godot Android APK
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager --install 'platform-tools' 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Install Godot 4.7.2 and templates
+        run: |
+          set -e
+          mkdir -p ~/.local/share/godot/export_templates/4.7.2.stable build
+          curl -fL --retry 3 -o /tmp/godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
+          unzip -q /tmp/godot.zip -d /tmp
+          sudo mv /tmp/Godot_v4.7.2-stable_linux.x86_64 /usr/local/bin/godot
+          sudo chmod +x /usr/local/bin/godot
+          curl -fL --retry 3 -o /tmp/templates.tpz https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
+          mkdir /tmp/tpls
+          unzip -q /tmp/templates.tpz -d /tmp/tpls
+          cp /tmp/tpls/templates/* ~/.local/share/godot/export_templates/4.7.2.stable/
+      - name: Create debug keystore
+        run: |
+          mkdir -p ~/.android
+          keytool -genkeypair -keystore ~/.android/debug.keystore -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -storepass android -keypass android -dname 'CN=Android Debug,O=Android,C=US'
+      - name: Export APK
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /home/runner/.android/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
+        run: |
+          godot --headless --path . --editor --quit
+          godot --headless --path . --export-debug Android build/NeonRonin-debug.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NeonRonin-Android-API36
+          path: build/NeonRonin-debug.apk
